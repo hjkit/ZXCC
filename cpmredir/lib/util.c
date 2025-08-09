@@ -49,12 +49,38 @@ void redir_showfcb(cpm_byte* fd)
 {
 	int n;
 
-	for (n = 0; n < 32; n++)
+	for (n = 0; n < 36; n++)
 	{
 		if (!n || n >= 12) printf("%02x ", fd[n]);
 		else		  printf("%c", fd[n] & 0x7F);
 	}
 	printf("\r\n");
+}
+
+/* Print a trace message */
+
+void show_fcb_Msg(cpm_byte* fcb)
+{
+	int n;
+	fprintf(stderr, "    dr filenam ty ex s1 s2 rc  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 cr r0 r1 r2\n");
+	fprintf(stderr, "FCB ");
+	for (n = 0; n < 36; n++)
+	{
+		if (!n || n >= 12) fprintf(stderr, "%02x ", fcb[n]);
+		else		  fprintf(stderr,"%c", fcb[n] & 0x7F);
+	}
+	fprintf(stderr,"\n");
+}
+
+void redir_Msg(char* s, ...)
+{
+	va_list ap;
+
+	va_start(ap, s);
+	printf("cpmredir trace: ");
+	vprintf(s, ap);
+	va_end(ap);
+	fflush(stdout);
 }
 
 #endif
@@ -128,7 +154,7 @@ int redir_ofile(cpm_byte* fcb, char* s)
 {
 	int h;
 
-	   /* Software write-protection */
+	/* Software write-protection */
 #ifdef __MSDOS__
 	int rv;
 	if (!redir_ro_fcb(fcb))
@@ -172,23 +198,6 @@ int redir_verify_fcb(cpm_byte* fcb)
 	return (int)(redir_rd32(fcb + 18));
 
 }
-
-/* Print a trace message */
-
-#ifdef DEBUG
-
-void redir_Msg(char* s, ...)
-{
-	va_list ap;
-
-	va_start(ap, s);
-	printf("cpmredir trace: ");
-	vprintf(s, ap);
-	va_end(ap);
-	fflush(stdout);
-}
-
-#endif
 
 #define BCD(x) (((x % 10)+16*(x/10)) & 0xFF)
 

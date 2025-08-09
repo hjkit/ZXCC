@@ -40,8 +40,8 @@
  * This code keeps track of files that are opened until they are explicitly
  * closed or the FCB used to open the file is reused, or the file needs to be
  * renamed or deleted.
- * To do this it keeps track of the expanded filename, fcb location and allocated
- * file handle
+ * To do this it keeps track of the expanded filename, fcb location and
+ * allocated file handle
  * 
  * Two public functions are used to manage the file list, and are called from
  * within the bdos emulation
@@ -80,9 +80,8 @@
  * a problem. I am not aware of any real programs that do this.
  * Please let me know if the situation arises.
 */
-/* windows needs to use file tracking, for unix/linux it is optional */
 
-#if defined(FILETRACKER)
+#ifdef FILETRACKER
 
 typedef struct _track {
 	struct _track* next;
@@ -100,7 +99,14 @@ static track_t* rmHandle(track_t* s) {
 	return next;
 }
 
+#endif
+
+#ifdef DEBUG
+void show_fcb_Msg(cpm_byte* fcb);
+#endif
+
 void releaseFile(char* fname) {
+#ifdef FILETRACKER
 	track_t* s = (track_t*)&openFiles;
 	while (s->next)
 		if (strcmp(s->next->fname, fname) == 0) {
@@ -109,16 +115,19 @@ void releaseFile(char* fname) {
 		}
 		else
 			s = s->next;
+#endif
 }
 
 
 int trackFile(char* fname, void* fcb, int fd) {
+#ifdef FILETRACKER
 	track_t* s = (track_t*)&openFiles;
 	while (s->next) {	/* find any existing fcb or fd */
 		if (s->next->fcb == fcb || s->next->handle == fd) {
-            if (s->next->handle != fd)
-                close(s->next->handle);
-			s->next = rmHandle(s->next);	/* release the tracker */
+			if ((s->next->handle != fd) && (fname && strcmp(s->next->fname, fname) == 0)) {
+				close(s->next->handle);
+			}
+			s->next = rmHandle(s->next); /* release the tracker */
 		}
 		else
 			s = s->next;
@@ -134,9 +143,8 @@ int trackFile(char* fname, void* fcb, int fd) {
 		s->handle = fd;
 		openFiles = s;
 	}
-	return fd;
-
-
-}
 #endif
+
+	return fd;
+}
 

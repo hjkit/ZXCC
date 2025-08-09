@@ -208,6 +208,9 @@ can produce Windows binaries (both x86 and x86_64).
 * Fixed Linux/Unix/macOS build autotools configuration when both
 FILETRACKER and debugging is enabled.
 
+* Leor Zolman's BDS C compiler/linker now works when run with ZXCC after
+a fix the the cpmredir routines to track re-use of a CP/M file control
+block - resolving issue #40.
 
 [^1]: The most recent Zilog Z80 Family CPU User Manual (UM008001-1000)
 can be found at http://www.zilog.com/docs/z80/z80cpu_um.pdf
@@ -217,4 +220,4 @@ Andreas Gerlich) at https://agl.yaze-ag.de/
 
 --
 
-Tony Nicholson, Friday 20-Jun-2025
+Tony Nicholson, Sunday 10-Aug-2025

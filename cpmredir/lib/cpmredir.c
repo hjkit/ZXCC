@@ -145,10 +145,10 @@ cpm_word fcb_open(cpm_byte* fcb, cpm_byte* dma)
 	redir_wrhandle(fcb + HANDLE_OFFSET, handle);
 
 	redir_put_fcb_pos(fcb, fcb[0x0C] * 16384);
-		/* (v1.01) "seek" to beginning of extent, not file.
-				 *         This is necessary for the awful I/O code
-				 *         in LINK-80 to work
-				 */
+	/* (v1.01) "seek" to beginning of extent, not file.
+	 *         This is necessary for the awful I/O code
+	 *         in LINK-80 to work
+	 */
 
 	/* Get the file length */
 	redir_wr32(fcb + LENGTH_OFFSET, zxlseek(handle, 0, SEEK_END));
@@ -169,7 +169,7 @@ cpm_word fcb_close(cpm_byte* fcb)
 
 	SHOWNAME("fcb_close")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return -1;
+	if ((handle = redir_verify_fcb(fcb)) < 0) return -1;
 	redir_Msg("         (at   %lx)\n", zxlseek(handle, 0, SEEK_CUR));
 
 	if (fcb[0] & 0x80)	/* Close directory */
@@ -191,7 +191,7 @@ cpm_word fcb_close(cpm_byte* fcb)
 #endif
 		return 0;
 	}
-    trackFile(NULL, fcb, handle);   /* stop tracking */
+	trackFile(NULL, fcb, handle);   /* stop tracking */
 	if (close(handle))
 	{
 		redir_Msg("Ret: -1\n");
@@ -205,14 +205,14 @@ cpm_word fcb_close(cpm_byte* fcb)
 cpm_word fcb_unlink(cpm_byte *fcb, cpm_byte *dma)
 {
 	int handle
-		char fname[CPM_MAXPATH];
+	char fname[CPM_MAXPATH];
 
 #ifdef DEBUG
-		redir_fcb2unix(fcb, fname);
-		redir_Msg("fcb_unlink(\"%s\")\n", fname);
+	redir_fcb2unix(fcb, fname);
+	redir_Msg("fcb_unlink(\"%s\")\n", fname);
 #endif
-		handle = unlink(fname);
-		if (handle)
+	handle = unlink(fname);
+	if (handle)
 	{
 		redir_Msg("Ret: -1\n");
 		return 0xFF;
@@ -253,21 +253,23 @@ cpm_word fcb_read(cpm_byte* fcb, cpm_byte* dma)
 
 	SHOWNAME("fcb_read")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;	/* Invalid FCB */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
 
 	/* The program may have mucked about with the counters, so
-		 * do an lseek() to where it should be. */
+	 * do an lseek() to where it should be.
+	 */
 
 	npos = redir_get_fcb_pos(fcb);
 	zxlseek(handle, npos, SEEK_SET);
 	redir_Msg("        (from %lx)\n", zxlseek(handle, 0, SEEK_CUR));
 
-/* Read in the required amount */
+	/* Read in the required amount */
 
 	rv = read(handle, dma, redir_rec_len);
 
-/* rd_len = length supposedly read, bytes. Round to nearest 128 bytes.
+	/* rd_len = length supposedly read, bytes. Round to nearest 128 bytes.
 	 */
+
 	rd_len = ((rv + 127) / 128) * 128;
 
 	npos += rd_len;
@@ -282,12 +284,12 @@ cpm_word fcb_read(cpm_byte* fcb, cpm_byte* dma)
 		return redir_xlt_err(); /* unwritten extent */
 	}
 
-    /* if not multiple of 128 bytes, pad sector with 0x1A */
-    for (n = rv; n < rd_len; n++) dma[n] = 0x1A;
+	/* if not multiple of 128 bytes, pad sector with 0x1A */
+	for (n = rv; n < rd_len; n++) dma[n] = 0x1A;
 
 	/* Less was read in than asked for. Report the number of 128-byte
-		 * records that _were_ read in.
-		 */
+	 * records that _were_ read in.
+	 */
 
 	if (rd_len < redir_rec_len) /* eof */
 	{
@@ -311,12 +313,12 @@ cpm_word fcb_write(cpm_byte* fcb, cpm_byte* dma)
 
 	SHOWNAME("fcb_write")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;	/* Invalid FCB */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
 
-		/* Software write-protection */
+	/* Software write-protection */
 	if (redir_ro_fcb(fcb)) return 0x02FF;
 
-/* Check for a seek */
+	/* Check for a seek */
 	npos = redir_get_fcb_pos(fcb);
 	zxlseek(handle, npos, SEEK_SET);
 
@@ -327,7 +329,7 @@ cpm_word fcb_write(cpm_byte* fcb, cpm_byte* dma)
 
 	redir_put_fcb_pos(fcb, npos);
 
-		/* Update the file length */
+	/* Update the file length */
 	len = redir_rd32(fcb + LENGTH_OFFSET);
 	if (len < npos) redir_wr32(fcb + LENGTH_OFFSET, npos);
 
@@ -345,7 +347,7 @@ cpm_word fcb_creat(cpm_byte* fcb, cpm_byte* dma)
 	
 	releaseFCB(fcb);   /* release existing fcb usage */
 
-/* Don't support ambiguous filenames */
+	/* Don't support ambiguous filenames */
 	if (redir_fcb2unix(fcb, fname)) return 0x09FF;
 	redir_Msg("fcb_creat(\"%s\")\n", fname);
 
@@ -398,13 +400,13 @@ cpm_word fcb_rename(cpm_byte* fcb, cpm_byte* dma)
 	if (redir_fcb2unix(fcb, ofname)) return 0x09FF;
 	if (redir_fcb2unix(fcb + 0x10, nfname)) return 0x09FF;
 
-		/* Software write-protection */
+	/* Software write-protection */
 	if (redir_ro_fcb(fcb)) return 0x02FF;
 
 	if (fcb[0] & 0x80) return 0xFF;	/* Can't rename directories */
 
 	/* Check we're not trying to rename across drives. Otherwise, it
-		 * might let you do it if the two "drives" are on the same disk. */
+	 * might let you do it if the two "drives" are on the same disk. */
 
 	sdrv = fcb[0] & 0x7F;     if (!sdrv) sdrv = redir_cpmdrive + 1;
 	ddrv = fcb[0x10] & 0x7F;  if (!ddrv) ddrv = redir_cpmdrive + 1;
@@ -440,7 +442,7 @@ cpm_word fcb_randrd(cpm_byte* fcb, cpm_byte* dma)
 
 	SHOWNAME("fcb_randrd")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;	/* Invalid FCB */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
 
 	if (zxlseek(handle, offs, SEEK_SET) < 0) return 6; /* bad record no. */
 	rv = read(handle, dma, redir_rec_len);
@@ -452,7 +454,8 @@ cpm_word fcb_randrd(cpm_byte* fcb, cpm_byte* dma)
 
 	rd_len = ((rv + 127) / 128) * 128;
 	
-	/* PMO: pad partial sector to 128 bytes, even if EOF reached in multi sector read */
+	/* PMO: pad partial sector to 128 bytes, even if EOF
+	 * reached in multi sector read */
 	for (n = rv; n < rd_len; n++) dma[n] = 0x1A;	/* pad last read to 128 boundary with 0x1A*/
 
 	if (rd_len < redir_rec_len)  /* eof */
@@ -476,8 +479,8 @@ cpm_word fcb_randwr(cpm_byte* fcb, cpm_byte* dma)
 
 	SHOWNAME("fcb_randwr")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;	/* Invalid FCB */
-		/* Software write-protection */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
+	/* Software write-protection */
 	if (redir_ro_fcb(fcb)) return 0x02FF;
 
 	if (zxlseek(handle, offs, SEEK_SET) < 0) return 6; /* bad record no. */
@@ -486,7 +489,7 @@ cpm_word fcb_randwr(cpm_byte* fcb, cpm_byte* dma)
 	redir_put_fcb_pos(fcb, offs);
 
 	if (rv < 0) return redir_xlt_err();	/* Error */
-		/* Update the file length */
+	/* Update the file length */
 	len = redir_rd32(fcb + LENGTH_OFFSET);
 	/* PMO: Bug fix, account for the data just written */
 	if (len < offs + rv)
@@ -498,15 +501,17 @@ cpm_word fcb_randwr(cpm_byte* fcb, cpm_byte* dma)
 
 #ifndef OLD_RANDWZ
 /* PMO:
- * Under CP/M for random write with zero fill, the zero fill is only done for a newly allocated
- * block and not fill from previous end of file
- * to implement this fully would require tracking sparse files and filling to block
- * boundaries.
- * As the default for POSIX/Windows lseek is to effectively zero fill and for modern hard disks
- * the additional space used is small compared to capacity, fcb_randwz is the same as fcb_randwr
- * Note zero padding to the end of the block will be done automatically as required when data is
- * written to later offsets
+ * Under CP/M for random write with zero fill, the zero fill is only done
+ * for a newly allocated block and not fill from previous end of file
+ * to implement this fully would require tracking sparse files and filling
+ * to block * boundaries.
+ * As the default for POSIX/Windows lseek is to effectively zero fill and
+ * for modern hard disks the additional space used is small compared to
+ * capacity, fcb_randwz is the same as fcb_randwr
+ * Note zero padding to the end of the block will be done automatically
+ * as required when data is written to later offsets
  */
+
 /* Write random with 0 fill */
 cpm_word fcb_randwz(cpm_byte* fcb, cpm_byte* dma)
 {
@@ -524,8 +529,9 @@ cpm_word fcb_randwz(cpm_byte* fcb, cpm_byte* dma)
 
 	SHOWNAME("fcb_randwz")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;     /* Invalid FCB */
-			/* Software write-protection */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
+
+	/* Software write-protection */
 	if (redir_ro_fcb(fcb)) return 0x02FF;
 
 	offs = redir_rd24(fcb + 0x21) * 128;
@@ -562,7 +568,7 @@ cpm_word fcb_tell(cpm_byte* fcb)
 
 	SHOWNAME("fcb_tell")
 
-		if ((handle = redir_verify_fcb(fcb)) < 0) return 9;   /* Invalid FCB */
+	if ((handle = redir_verify_fcb(fcb)) < 0) return 9; /* Invalid FCB */
 
 	rv = zxlseek(handle, 0, SEEK_CUR);
 
@@ -650,7 +656,7 @@ cpm_word fcb_trunc(cpm_byte* fcb, cpm_byte* dma)
 	/* Software write-protection */
 	if (redir_ro_fcb(fcb)) return 0x02FF;
 
-	releaseFile(fname);			/* after truncate open files are invalid */
+	releaseFile(fname);	/* after truncate open files are invalid */
 	redir_log_fcb(fcb);
 	if (truncate(fname, offs))
 	{
@@ -674,7 +680,7 @@ cpm_word fcb_sdate(cpm_byte* fcb, cpm_byte* dma)
 	buf.actime = redir_unixtime(dma);
 	buf.modtime = redir_unixtime(dma + 4);
 
-		/* Don't support ambiguous filenames */
+	/* Don't support ambiguous filenames */
 	if (redir_fcb2unix(fcb, fname)) return 0x09FF;
 
 	/* Software write-protection */
@@ -704,7 +710,7 @@ cpm_word fcb_chmod(cpm_byte* fcb, cpm_byte* dma)
 	long offs, newoffs;
 	cpm_byte zero[128];
 
-		/* Don't support ambiguous filenames */
+	/* Don't support ambiguous filenames */
 	if (redir_fcb2unix(fcb, fname)) return 0x09FF;
 
 	/* Software write-protection */
@@ -758,8 +764,8 @@ cpm_word fcb_chmod(cpm_byte* fcb, cpm_byte* dma)
 	{
 		if (stat(fname, &st)) return redir_xlt_err();
 
-		releaseFCB(fcb);	/* cpm required file to be closed so release FCB */
-		releaseFile(fname);	/* also make sure no other handles open to file */
+		releaseFCB(fcb); /* cpm required file to be closed so release FCB */
+		releaseFile(fname); /* also make sure no other handles open to file */
 		handle = open(fname, O_RDWR | O_BINARY);
 		if (handle < 0) return redir_xlt_err();
 
@@ -806,7 +812,7 @@ cpm_word fcb_setpwd(cpm_byte* fcb, cpm_byte* dma)
 	char fname[CPM_MAXPATH];
 	cpm_word rv;
 
-		/* Don't support ambiguous filenames */
+	/* Don't support ambiguous filenames */
 	if (redir_fcb2unix(fcb, fname)) return 0x09FF;
 
 	/* Software write-protection */
